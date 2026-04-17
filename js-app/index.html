@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cognitive Risk Predictor</title>
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #111827;
+    }
+
+    .app { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 260px;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 1.5rem;
+      flex-shrink: 0;
+    }
+    .sidebar h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+    }
+    .sidebar .radio-group { margin-bottom: 1.25rem; }
+    .sidebar .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #cbd5e1;
+      padding: 0.25rem 0;
+      cursor: pointer;
+    }
+    .sidebar .radio-group label:first-child {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: default;
+      padding-bottom: 0.4rem;
+    }
+    .sidebar input[type="radio"] { accent-color: #3b82f6; }
+    .sidebar input[type="checkbox"] { accent-color: #3b82f6; }
+    #demo-toggle {
+      display: none;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #334155;
+    }
+    #demo-toggle label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #cbd5e1;
+      cursor: pointer;
+    }
+    .model-info {
+      margin-top: 1.5rem;
+      padding: 0.75rem;
+      background: #0f172a;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      line-height: 1.8;
+    }
+    .model-info strong { color: #e2e8f0; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 2rem; min-width: 0; }
+
+    h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+
+    .subtitle {
+      color: #4b5563;
+      font-size: 0.92rem;
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Legend chips ── */
+    .legend { display: flex; gap: 0.75rem; margin-bottom: 1.75rem; flex-wrap: wrap; }
+    .chip {
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #111827;
+    }
+    .chip-demo { background-color: #76aade; }
+    .chip-raw  { background-color: #e8e848; }
+    .chip-z    { background-color: #61d461; }
+
+    /* ── Feature grid ── */
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .feature-grid {
+      display: grid;
+      gap: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .feature-cell {}
+    .feature-label {
+      padding: 0.3rem 0.55rem;
+      border-radius: 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      display: inline-block;
+      color: #111827;
+    }
+    .label-demo { background-color: #76aade; }
+    .label-raw  { background-color: #e8e848; }
+    .label-z    { background-color: #61d461; }
+    .feature-cell input[type="number"] {
+      width: 100%;
+      padding: 0.4rem 0.6rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      background: #fff;
+    }
+    .feature-cell input[type="number"]:focus {
+      outline: 2px solid #3b82f6;
+      border-color: transparent;
+    }
+
+    /* ── Predict button ── */
+    #predict-btn {
+      padding: 0.6rem 2rem;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 1.25rem;
+    }
+    #predict-btn:hover:not(:disabled) { background: #1d4ed8; }
+    #predict-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* ── Status / error ── */
+    #status { font-size: 0.875rem; margin-bottom: 0.75rem; min-height: 1.25rem; }
+    #status.loading { color: #6b7280; font-style: italic; }
+    #status.error   { color: #dc2626; }
+
+    /* ── Results ── */
+    #results {
+      display: none;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      max-width: 520px;
+    }
+    .results-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .metric { text-align: center; }
+    .metric-label {
+      font-size: 0.72rem;
+      color: #6b7280;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .metric-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+    .result-banner {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      text-align: center;
+      font-size: 1rem;
+    }
+    .result-high { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .result-low  { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+
+    @media (max-width: 680px) {
+      .app { flex-direction: column; }
+      .sidebar { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <h2>Model Settings</h2>
+
+    <div class="radio-group">
+      <label>Feature set</label>
+      <label><input type="radio" name="feature-mode" value="full" checked> Full</label>
+      <label><input type="radio" name="feature-mode" value="reduced"> Reduced</label>
+    </div>
+
+    <div id="demo-toggle">
+      <label>
+        <input type="checkbox" id="include-demo" checked>
+        Include demographics
+      </label>
+    </div>
+
+    <div class="model-info">
+      <div>Loaded model: <strong id="info-key">—</strong></div>
+      <div>Features: <strong id="info-nfeatures">—</strong></div>
+      <div>Threshold: <strong id="info-threshold">—</strong></div>
+    </div>
+  </aside>
+
+  <!-- ── Main content ── -->
+  <main class="main">
+    <h1>Cognitive Risk Predictor</h1>
+    <p class="subtitle">
+      Fields are pre-filled with training-set averages.
+      Blue&nbsp;=&nbsp;demographics &nbsp;|&nbsp;
+      Yellow&nbsp;=&nbsp;raw&nbsp;scores &nbsp;|&nbsp;
+      Green&nbsp;=&nbsp;z-scores.
+    </p>
+
+    <div class="legend">
+      <span class="chip chip-demo">Demographics</span>
+      <span class="chip chip-raw">Raw Scores</span>
+      <span class="chip chip-z">Z-scores</span>
+    </div>
+
+    <div class="section-title">Patient Features</div>
+    <div class="feature-grid" id="feature-grid"></div>
+
+    <button id="predict-btn" disabled>Loading model…</button>
+    <div id="status" class="loading"></div>
+
+    <div id="results">
+      <div class="results-title">Results</div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Risk Probability</div>
+          <div class="metric-value" id="res-prob">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Threshold</div>
+          <div class="metric-value" id="res-threshold">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Decision</div>
+          <div class="metric-value" id="res-decision">—</div>
+        </div>
+      </div>
+      <div class="result-banner" id="res-banner"></div>
+    </div>
+  </main>
+
+</div>
+<script>
+// ── Feature metadata — mirrors app.py exactly ────────────────────────────────
+
+const DEMOGRAPHICS = [
+  "age7c", "gender1", "race1c", "educ1", "phx_income7", "curjob7"
+];
+
+const RAW_SCORES = [
+  "craftursmb7c", "craftdremb7c", "dgtformb7c", "dgtbckmb7c",
+  "dsymscrmb7c", "trailamb7c", "trailbmb7c_adjusted", "udsverfcmb7c",
+  "vegmb7c", "animalsmb7c", "avlt_delayed_totalmb7c",
+  "avlt_t1_totalmb7c", "avlt_t6_totalmb7c", "avlt_total_correctmb7c",
+  "wrat5mb7c", "mocatotsmb7c", "craftdvrmb7c", "craftvrsmb7c",
+  "udsbentcmb7c", "udsbentdmb7c", "avlt_lotmb7c", "avlt_listb_totalmb7c",
+  "trailb_ceiling", "casisummb7c"
+];
+
+const Z_SCORES = [
+  "memory_immed_domainmb7c", "memory_delay_domainmb7c",
+  "lang_semantic_domainmb7c", "phonemic_domainmb7c",
+  "attn_process_domainmb7c", "executive_domainmb7c",
+  "visuo_domainmb7c", "lang_phonemic_domainmb7c"
+];
+
+const PRETTY_NAMES = {
+  "age7c":                     "Age",
+  "gender1":                   "Gender",
+  "race1c":                    "Race",
+  "educ1":                     "Education",
+  "phx_income7":               "Income",
+  "curjob7":                   "Current Job",
+  "trailbmb7c_adjusted":       "Trail B Adjusted",
+  "memory_delay_domainmb7c":   "Memory Delay Z-score",
+  "executive_domainmb7c":      "Executive Z-score",
+  "mocatotsmb7c":              "MoCA Total",
+  "casisummb7c":               "CASI Sum",
+  "dsymscrmb7c":               "Digit Symbol Score",
+};
+
+function getGroup(feature) {
+  if (DEMOGRAPHICS.includes(feature)) return "demo";
+  if (Z_SCORES.includes(feature))     return "z";
+  return "raw";
+}
+
+function getLabel(feature) {
+  return PRETTY_NAMES[feature] || feature;
+}
+
+function getLabelClass(feature) {
+  const g = getGroup(feature);
+  return g === "demo" ? "label-demo" : g === "z" ? "label-z" : "label-raw";
+}
+
+// ── App state ─────────────────────────────────────────────────────────────────
+
+let metadata       = null;   // loaded from models/metadata.json
+let currentModelKey = null;
+const sessionCache  = {};    // modelKey -> ort.InferenceSession
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function getModelKey() {
+  const mode = document.querySelector('input[name="feature-mode"]:checked').value;
+  if (mode === "full") return "full";
+  return document.getElementById("include-demo").checked
+    ? "reduced_demo"
+    : "reduced_nodemo";
+}
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById("status");
+  el.textContent = msg;
+  el.className   = isError ? "error" : "loading";
+}
+
+// ── Load metadata JSON ────────────────────────────────────────────────────────
+
+async function loadMetadata() {
+  const res = await fetch("models/metadata.json");
+  if (!res.ok) throw new Error(
+    `Could not load models/metadata.json (HTTP ${res.status}). ` +
+    `Make sure you have run export_models.py and are serving from the js-app/ directory.`
+  );
+  metadata = await res.json();
+}
+
+// ── Load ONNX session (cached) ────────────────────────────────────────────────
+
+async function getSession(modelKey) {
+  if (!sessionCache[modelKey]) {
+    setStatus(`Loading model: ${modelKey}…`);
+    try {
+      sessionCache[modelKey] = await ort.InferenceSession.create(`models/${modelKey}.onnx`);
+    } catch (e) {
+      const msg = (e && (e.message || e.toString())) || `Unknown error loading models/${modelKey}.onnx`;
+      throw new Error(msg);
+    }
+    setStatus("");
+  }
+  return sessionCache[modelKey];
+}
+
+// ── Render feature form ───────────────────────────────────────────────────────
+
+function renderForm(modelKey) {
+  const meta = metadata[modelKey];
+  const grid = document.getElementById("feature-grid");
+  grid.innerHTML = "";
+
+  // Column counts match Streamlit app (ncols: 4 full, 3 reduced_demo, 2 reduced_nodemo)
+  const ncols = modelKey === "full" ? 4 : modelKey === "reduced_demo" ? 3 : 2;
+  grid.style.gridTemplateColumns = `repeat(${ncols}, minmax(0, 1fr))`;
+
+  for (const feature of meta.features) {
+    const mean = meta.means[feature];
+
+    const cell  = document.createElement("div");
+    cell.className = "feature-cell";
+
+    const lbl = document.createElement("div");
+    lbl.className   = `feature-label ${getLabelClass(feature)}`;
+    lbl.textContent = getLabel(feature);
+
+    const inp = document.createElement("input");
+    inp.type  = "number";
+    inp.step  = "any";
+    inp.id    = `feat-${feature}`;
+    inp.value = (mean !== undefined) ? mean.toFixed(4) : "0";
+
+    cell.appendChild(lbl);
+    cell.appendChild(inp);
+    grid.appendChild(cell);
+  }
+
+  // Update sidebar info panel
+  document.getElementById("info-key").textContent       = modelKey;
+  document.getElementById("info-nfeatures").textContent = meta.features.length;
+  document.getElementById("info-threshold").textContent = meta.threshold.toFixed(3);
+}
+
+// ── Run prediction ────────────────────────────────────────────────────────────
+
+async function runPredict() {
+  const modelKey = getModelKey();
+  const meta     = metadata[modelKey];
+  const btn      = document.getElementById("predict-btn");
+
+  btn.disabled    = true;
+  btn.textContent = "Running…";
+
+  try {
+    const session = await getSession(modelKey);
+
+    // Build Float32Array input in feature order; fall back to mean if blank / NaN
+    const inputData = new Float32Array(
+      meta.features.map(f => {
+        const val = parseFloat(document.getElementById(`feat-${f}`).value);
+        return isNaN(val) ? meta.means[f] : val;
+      })
+    );
+
+    const inputName = session.inputNames[0];
+    const tensor    = new ort.Tensor("float32", inputData, [1, inputData.length]);
+    const outputs   = await session.run({ [inputName]: tensor });
+
+    // Probabilities output: shape [1, 2] (class-0 prob, class-1 prob)
+    const probName   = session.outputNames.find(n => n.toLowerCase().includes("prob"))
+                       || session.outputNames[1];
+    const probImpaired = outputs[probName].data[1];  // index 1 = impaired class
+
+    showResults(probImpaired, meta.threshold);
+  } catch (err) {
+    setStatus(`Error: ${err && (err.message || err.toString()) || "unknown error"}`, true);
+    console.error(err);
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = "Predict";
+  }
+}
+
+// ── Display results ───────────────────────────────────────────────────────────
+
+function showResults(prob, threshold) {
+  const highRisk = prob >= threshold;
+
+  document.getElementById("res-prob").textContent      = prob.toFixed(3);
+  document.getElementById("res-threshold").textContent = threshold.toFixed(3);
+  document.getElementById("res-decision").textContent  = highRisk ? "High Risk" : "Low Risk";
+
+  const banner = document.getElementById("res-banner");
+  if (highRisk) {
+    banner.textContent = "High Risk (Cognitive Impairment Likely)";
+    banner.className   = "result-banner result-high";
+  } else {
+    banner.textContent = "Low Risk";
+    banner.className   = "result-banner result-low";
+  }
+
+  document.getElementById("results").style.display = "block";
+}
+
+// ── Handle settings changes ───────────────────────────────────────────────────
+
+async function onSettingsChange() {
+  const mode = document.querySelector('input[name="feature-mode"]:checked').value;
+  document.getElementById("demo-toggle").style.display = (mode === "reduced") ? "block" : "none";
+
+  const modelKey = getModelKey();
+  if (modelKey === currentModelKey) return;
+  currentModelKey = modelKey;
+
+  document.getElementById("results").style.display = "none";
+  renderForm(modelKey);
+
+  const btn = document.getElementById("predict-btn");
+  btn.disabled    = true;
+  btn.textContent = "Loading model…";
+
+  try {
+    await getSession(modelKey);
+    btn.disabled    = false;
+    btn.textContent = "Predict";
+  } catch (err) {
+    setStatus(`Failed to load model: ${err && (err.message || err.toString()) || "unknown error"}`, true);
+  }
+}
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+
+(async () => {
+  try {
+    setStatus("Loading metadata…");
+    await loadMetadata();
+    setStatus("");
+
+    document.querySelectorAll('input[name="feature-mode"]')
+      .forEach(r => r.addEventListener("change", onSettingsChange));
+    document.getElementById("include-demo")
+      .addEventListener("change", onSettingsChange);
+    document.getElementById("predict-btn")
+      .addEventListener("click", runPredict);
+
+    await onSettingsChange();   // initial render + model pre-load
+  } catch (err) {
+    setStatus(`Initialisation error: ${err.message}`, true);
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>
