@@ -24,7 +24,7 @@ An interactive web application built with Streamlit allows users to input patien
   - Reduced feature set (with and without demographics)  
 - Interactive Streamlit web app  
 - Color-coded feature groups:
-  - 🔵 Demographics  
-  - 🟢 Raw cognitive scores  
-  - 🟣 Domain-level (z-score) features  
+  - Demographics  
+  - Raw cognitive scores  
+  - Domain-level (z-score) features  
 - Multi-column layout for efficient data entry  
