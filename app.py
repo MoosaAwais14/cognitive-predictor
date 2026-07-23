@@ -40,6 +40,92 @@ st.markdown(
         color: #4b5563;
         font-size: 0.92rem;
     }
+
+    /* ── Sidebar restyle ─────────────────────────────────────────── */
+    section[data-testid="stSidebar"] {
+        background-color: #101827;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #e2e8f0;
+    }
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] .stMarkdown p {
+        color: #e2e8f0;
+    }
+    section[data-testid="stSidebar"] hr {
+        border-color: #263248;
+    }
+
+    .sidebar-eyebrow {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7c8aa5 !important;
+        margin: 1.1rem 0 0.4rem 0;
+    }
+
+    /* Feature-set dropdown (selectbox) */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        background-color: #1c2537;
+        border: 1px solid #324364;
+        border-radius: 0.65rem;
+        box-shadow: none;
+        transition: border-color 0.15s ease;
+    }
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div:hover {
+        border-color: #3b82f6;
+    }
+    section[data-testid="stSidebar"] div[data-baseweb="select"] span {
+        color: #e2e8f0 !important;
+        font-weight: 600;
+    }
+    ul[data-baseweb="menu"] {
+        background-color: #1c2537 !important;
+        border: 1px solid #324364 !important;
+    }
+    ul[data-baseweb="menu"] li {
+        color: #e2e8f0 !important;
+    }
+    ul[data-baseweb="menu"] li:hover {
+        background-color: #2563eb !important;
+    }
+
+    /* Toggle switches (feature group inclusion) */
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #cbd5e1 !important;
+    }
+    section[data-testid="stSidebar"] button[role="switch"][aria-checked="true"] {
+        background-color: #3b82f6 !important;
+    }
+
+    /* Model info card */
+    .model-info-card {
+        margin-top: 1.4rem;
+        padding: 0.9rem 1rem;
+        background: #1c2537;
+        border: 1px solid #263248;
+        border-radius: 0.75rem;
+        font-size: 0.85rem;
+        color: #cbd5e1 !important;
+        line-height: 1.9;
+    }
+    .model-info-card strong {
+        color: #f8fafc !important;
+        float: right;
+    }
+    .model-info-row {
+        display: flex;
+        justify-content: space-between;
+        color: #94a3b8;
+    }
+
+    /* Categorical dropdowns rendered in the main patient-feature grid */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        border-radius: 0.5rem;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -67,16 +153,12 @@ z_scores = [
     "visuo_domainmb7c", "lang_phonemic_domainmb7c"
 ]
 
-reduced_z = [
+reduced_z_scores = [
     "executive_domainmb7c",
     "memory_delay_domainmb7c",
-]
-
-reduced_raw = [
     "trailbmb7c_adjusted",
     "casisummb7c",
     "dsymscrmb7c",
-    "mocatotsmb7c",
 ]
 
 pretty_names = {
@@ -94,41 +176,66 @@ pretty_names = {
     "dsymscrmb7c": "Digit Symbol Score",
 }
 
+# Numeric-code -> human-readable label, for the categorical demographic
+# fields. Age is left as a plain numeric input since it isn't categorical.
+demographic_value_maps = {
+    "gender1": {0: "Female", 1: "Male"},
+    "race1c": {1: "White", 2: "Chinese", 3: "Black", 4: "Hispanic"},
+    "educ1": {
+        0: "No schooling",
+        1: "Grades 1–8",
+        2: "Grades 9–11",
+        3: "High school/GED",
+        4: "Some college",
+        5: "Tech school",
+        6: "Associate degree",
+        7: "Bachelor’s",
+        8: "Graduate/Professional",
+    },
+    "phx_income7": {
+        1: "<$5k", 2: "$5k–7.9k", 3: "$8k–11.9k", 4: "$12k–15.9k",
+        5: "$16k–19.9k", 6: "$20k–24.9k", 7: "$25k–29.9k", 8: "$30k–34.9k",
+        9: "$35k–39.9k", 10: "$40k–49.9k", 11: "$50k–74.9k",
+        12: "$75k–99.9k", 13: "$100k–124.9k", 14: "$125k–149.9k", 15: "≥$150k",
+    },
+    "curjob7": {
+        1: "Homemaker", 2: "Employed FT", 3: "Employed PT", 4: "On leave",
+        5: "Temp away", 6: "Unemployed <6mo", 7: "Unemployed >6mo",
+        8: "Retired - Not Working", 9: "Retired - Working", 10: "Volunteering",
+    },
+}
 
-def make_reduced_key(include_demo: bool, include_z: bool, include_raw: bool) -> str:
-    """
-    Build the canonical model key for a reduced-feature combination.
-    Parts are always in alphabetical order: demo < raw < z.
-    Returns None if no cognitive group is selected.
-    """
-    parts = []
-    if include_demo:
-        parts.append("demo")
-    if include_raw:
-        parts.append("raw")
-    if include_z:
-        parts.append("z")
 
-    cog_selected = include_z or include_raw
-    if not cog_selected:
-        return None  # invalid — caller must handle
-
-    return "reduced_" + "_".join(parts)
+REQUIRED_ARTIFACTS = ["model", "threshold", "features", "feature_means"]
 
 
 @st.cache_resource
 def load_artifacts(mode_key: str):
+    """Load every artifact for a given model key.
+
+    Raises FileNotFoundError / EOFError / UnpicklingError etc. rather than
+    swallowing them, so the caller can show the user exactly what went
+    wrong instead of the app silently rendering a blank page.
+    """
     model = joblib.load(f"model_{mode_key}.pkl")
     threshold = joblib.load(f"threshold_{mode_key}.pkl")
     features = joblib.load(f"features_{mode_key}.pkl")
     means = joblib.load(f"feature_means_{mode_key}.pkl")
-    return model, threshold, features, means
+
+    # AUC is optional: older model exports may not have it yet, so we
+    # don't want a missing auc_*.pkl file to take down the whole app.
+    try:
+        auc = joblib.load(f"auc_{mode_key}.pkl")
+    except FileNotFoundError:
+        auc = None
+
+    return model, threshold, features, means, auc
 
 
 def get_group(feature: str) -> str:
     if feature in demographics:
         return "demo"
-    if feature in z_scores or feature in reduced_z:
+    if feature in z_scores or feature in reduced_z_scores:
         return "z"
     return "raw"
 
@@ -149,6 +256,21 @@ def render_feature_input(feature: str, mean_value: float, key: str):
         f'<div class="feature-label {css_class}">{label}</div>',
         unsafe_allow_html=True
     )
+
+    if feature in demographic_value_maps:
+        value_map = demographic_value_maps[feature]
+        options = sorted(value_map.keys())
+        # Default to whichever category is closest to the training-set mean.
+        default_code = min(options, key=lambda code: abs(code - mean_value))
+        selected_code = st.selectbox(
+            label,
+            options=options,
+            index=options.index(default_code),
+            format_func=lambda code: value_map[code],
+            key=key,
+            label_visibility="collapsed",
+        )
+        return float(selected_code)
 
     return st.number_input(
         label,
@@ -190,48 +312,84 @@ with chip_col3:
 
 st.sidebar.header("Model Settings")
 
-feature_mode = st.sidebar.radio(
+st.sidebar.markdown('<div class="sidebar-eyebrow">Feature set</div>', unsafe_allow_html=True)
+feature_mode = st.sidebar.selectbox(
     "Feature set",
     options=["Full", "Reduced"],
-    index=0
+    index=0,
+    label_visibility="collapsed"
 )
+
+# Defaults so these names always exist regardless of which branch runs below.
+mode_key = None
+model = threshold = features = feature_means = model_auc = None
+active_features = []
+ncols = 4
+load_error = None
 
 if feature_mode == "Full":
     mode_key = "full"
     ncols = 4
-    model, threshold, features, feature_means = load_artifacts(mode_key)
-    active_features = list(features)
+    try:
+        model, threshold, features, feature_means, model_auc = load_artifacts(mode_key)
+        active_features = list(features)
+    except Exception as exc:
+        load_error = exc
 
 else:
-    st.sidebar.markdown("**Feature groups**")
-    include_z    = st.sidebar.checkbox("Z-scores (reduced)", value=True)
-    include_raw  = st.sidebar.checkbox("Raw scores (reduced)", value=False)
-    include_demo = st.sidebar.checkbox("Demographics", value=False)
+    st.sidebar.markdown('<div class="sidebar-eyebrow">Include feature groups</div>', unsafe_allow_html=True)
+    include_z = st.sidebar.toggle("Z-scores (reduced)", value=True)
+    include_raw = st.sidebar.toggle("Raw scores", value=False)
+    include_demo = st.sidebar.toggle("Demographics", value=False)
 
-    mode_key = make_reduced_key(include_demo, include_z, include_raw)
+    mode_key = "reduced_demo" if include_demo else "reduced_nodemo"
 
-    if mode_key is None:
-        st.sidebar.warning("Select at least one cognitive group (Z-scores or Raw scores).")
-        st.warning("Please select at least one cognitive feature group from the sidebar.")
-        st.stop()
+    try:
+        model, threshold, features, feature_means, model_auc = load_artifacts(mode_key)
 
-    model, threshold, features, feature_means = load_artifacts(mode_key)
+        active_features = []
+        if include_z:
+            active_features += [f for f in reduced_z_scores if f in features]
+        if include_raw:
+            active_features += [f for f in raw_scores if f in features]
+        if include_demo:
+            active_features += [f for f in demographics if f in features]
 
-    # Build the display order: demographics → reduced_raw → reduced_z
-    active_features = []
-    if include_demo:
-        active_features += [f for f in demographics if f in features]
-    if include_raw:
-        active_features += [f for f in reduced_raw if f in features]
-    if include_z:
-        active_features += [f for f in reduced_z if f in features]
+        active_features = list(dict.fromkeys(active_features))
+        ncols = max(2, min(4, len(active_features) // 3 + 1))
+    except Exception as exc:
+        load_error = exc
 
-    active_features = list(dict.fromkeys(active_features))
-    ncols = max(2, min(4, len(active_features) // 3 + 1))
+if load_error is not None:
+    missing_files = [
+        f"{name}_{mode_key}.pkl" for name in REQUIRED_ARTIFACTS
+    ]
+    st.error(
+        f"Couldn't load the **{mode_key}** model artifacts, so there's nothing to "
+        f"render for this feature set.\n\n"
+        f"**Error:** `{load_error}`\n\n"
+        f"This almost always means one of these files is missing from the app's "
+        f"working directory:\n\n"
+        + "\n".join(f"- `{f}`" for f in missing_files)
+        + "\n\nRun `model.py` (it trains three variants: `full`, `reduced_demo`, "
+        "`reduced_nodemo`) and make sure all of the resulting `.pkl` files are "
+        "deployed alongside `app.py`."
+    )
+    st.stop()
 
-st.sidebar.markdown(f"**Loaded model:** `{mode_key}`")
-st.sidebar.markdown(f"**Features shown:** {len(active_features)}")
-st.sidebar.markdown(f"**Threshold:** {threshold:.3f}")
+st.sidebar.markdown(
+    f"""
+    <div class="model-info-card">
+        <div class="model-info-row">Loaded model <strong>{mode_key}</strong></div>
+        <div class="model-info-row">Features shown <strong>{len(active_features)}</strong></div>
+        <div class="model-info-row">Decision threshold <strong>{threshold:.3f}</strong></div>
+        <div class="model-info-row">Model AUC (test) <strong>{f"{model_auc:.3f}" if model_auc is not None else "N/A"}</strong></div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+if model_auc is None:
+    st.sidebar.caption("Re-run model.py to generate auc_*.pkl and see the test-set AUC here.")
 
 st.subheader("Patient Features")
 
@@ -256,10 +414,11 @@ else:
 
         st.subheader("Results")
 
-        out1, out2, out3 = st.columns(3)
+        out1, out2, out3, out4 = st.columns(4)
         out1.metric("Risk Probability", f"{prob:.3f}")
         out2.metric("Threshold", f"{threshold:.3f}")
         out3.metric("Decision", "High Risk" if pred == 1 else "Low Risk")
+        out4.metric("Model AUC (test)", f"{model_auc:.3f}" if model_auc is not None else "N/A")
 
         if pred == 1:
             st.error("High Risk (Cognitive Impairment Likely)")

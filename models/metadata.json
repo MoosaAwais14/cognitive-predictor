@@ -80,55 +80,11 @@
       "executive_domainmb7c": -0.2933023740027752,
       "visuo_domainmb7c": -0.29324001299444963,
       "lang_phonemic_domainmb7c": -0.10817882345883441
-    }
+    },
+    "auc": 0.9515697660410091
   },
-  "reduced_z": {
-    "threshold": 0.6285102040816326,
-    "features": [
-      "executive_domainmb7c",
-      "memory_delay_domainmb7c"
-    ],
-    "means": {
-      "executive_domainmb7c": -0.2933023740027752,
-      "memory_delay_domainmb7c": -0.07421472462072155
-    }
-  },
-  "reduced_raw": {
-    "threshold": 0.687,
-    "features": [
-      "trailbmb7c_adjusted",
-      "casisummb7c",
-      "dsymscrmb7c",
-      "mocatotsmb7c"
-    ],
-    "means": {
-      "trailbmb7c_adjusted": 131.525,
-      "casisummb7c": 88.96273291356879,
-      "dsymscrmb7c": 49.700838769804285,
-      "mocatotsmb7c": 21.667903525046384
-    }
-  },
-  "reduced_raw_z": {
-    "threshold": 0.6610408163265307,
-    "features": [
-      "trailbmb7c_adjusted",
-      "casisummb7c",
-      "dsymscrmb7c",
-      "mocatotsmb7c",
-      "executive_domainmb7c",
-      "memory_delay_domainmb7c"
-    ],
-    "means": {
-      "trailbmb7c_adjusted": 131.525,
-      "casisummb7c": 88.96273291356879,
-      "dsymscrmb7c": 49.700838769804285,
-      "mocatotsmb7c": 21.667903525046384,
-      "executive_domainmb7c": -0.2933023740027752,
-      "memory_delay_domainmb7c": -0.07421472462072155
-    }
-  },
-  "reduced_demo_z": {
-    "threshold": 0.646,
+  "reduced_demo": {
+    "threshold": 0.6660816326530612,
     "features": [
       "age7c",
       "gender1",
@@ -137,7 +93,10 @@
       "phx_income7",
       "curjob7",
       "executive_domainmb7c",
-      "memory_delay_domainmb7c"
+      "memory_delay_domainmb7c",
+      "trailbmb7c_adjusted",
+      "casisummb7c",
+      "dsymscrmb7c"
     ],
     "means": {
       "age7c": 76.17021276595744,
@@ -147,65 +106,29 @@
       "phx_income7": 10.019455252918288,
       "curjob7": 6.483629560336763,
       "executive_domainmb7c": -0.2933023740027752,
-      "memory_delay_domainmb7c": -0.07421472462072155
-    }
-  },
-  "reduced_demo_raw": {
-    "threshold": 0.6445306122448979,
-    "features": [
-      "age7c",
-      "gender1",
-      "race1c",
-      "educ1",
-      "phx_income7",
-      "curjob7",
-      "trailbmb7c_adjusted",
-      "casisummb7c",
-      "dsymscrmb7c",
-      "mocatotsmb7c"
-    ],
-    "means": {
-      "age7c": 76.17021276595744,
-      "gender1": 0.45605920444033304,
-      "race1c": 2.30527289546716,
-      "educ1": 5.410565338276181,
-      "phx_income7": 10.019455252918288,
-      "curjob7": 6.483629560336763,
+      "memory_delay_domainmb7c": -0.07421472462072155,
       "trailbmb7c_adjusted": 131.525,
       "casisummb7c": 88.96273291356879,
-      "dsymscrmb7c": 49.700838769804285,
-      "mocatotsmb7c": 21.667903525046384
-    }
+      "dsymscrmb7c": 49.700838769804285
+    },
+    "auc": 0.9402091415078428
   },
-  "reduced_demo_raw_z": {
-    "threshold": 0.664530612244898,
+  "reduced_nodemo": {
+    "threshold": 0.654061224489796,
     "features": [
-      "age7c",
-      "gender1",
-      "race1c",
-      "educ1",
-      "phx_income7",
-      "curjob7",
-      "trailbmb7c_adjusted",
-      "casisummb7c",
-      "dsymscrmb7c",
-      "mocatotsmb7c",
       "executive_domainmb7c",
-      "memory_delay_domainmb7c"
+      "memory_delay_domainmb7c",
+      "trailbmb7c_adjusted",
+      "casisummb7c",
+      "dsymscrmb7c"
     ],
     "means": {
-      "age7c": 76.17021276595744,
-      "gender1": 0.45605920444033304,
-      "race1c": 2.30527289546716,
-      "educ1": 5.410565338276181,
-      "phx_income7": 10.019455252918288,
-      "curjob7": 6.483629560336763,
+      "executive_domainmb7c": -0.2933023740027752,
+      "memory_delay_domainmb7c": -0.07421472462072155,
       "trailbmb7c_adjusted": 131.525,
       "casisummb7c": 88.96273291356879,
-      "dsymscrmb7c": 49.700838769804285,
-      "mocatotsmb7c": 21.667903525046384,
-      "executive_domainmb7c": -0.2933023740027752,
-      "memory_delay_domainmb7c": -0.07421472462072155
-    }
+      "dsymscrmb7c": 49.700838769804285
+    },
+    "auc": 0.9252343204105727
   }
 }

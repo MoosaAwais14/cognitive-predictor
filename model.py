@@ -3,7 +3,7 @@ import pandas as pd
 import joblib
 
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_auc_score
 
 
 train = pd.read_csv("data_split/train_data.csv")
@@ -31,8 +31,11 @@ if len(non_english_completed) > 0:
 else:
     impute_value = np.nan
 
+# Trail B ceiling indicator:
+# 1 if Trail B hit the ceiling of 300, else 0.
 train["trailb_ceiling"] = (train["trailbmb7c"] == 300).astype(int)
 test["trailb_ceiling"] = (test["trailbmb7c"] == 300).astype(int)
+
 
 
 label_map = {"NI": 0, "MCI": 1, "PD": 1, "CC": 1}
@@ -44,6 +47,7 @@ train = train.loc[y_train.dropna().index].copy()
 test = test.loc[y_test.dropna().index].copy()
 y_train = y_train.dropna().astype(int)
 y_test = y_test.dropna().astype(int)
+
 
 
 demographics = [
@@ -67,45 +71,24 @@ z_scores = [
     "visuo_domainmb7c", "lang_phonemic_domainmb7c"
 ]
 
-reduced_z = [
+reduced_core = [
     "executive_domainmb7c",
     "memory_delay_domainmb7c",
-]
-
-reduced_raw = [
     "trailbmb7c_adjusted",
     "casisummb7c",
     "dsymscrmb7c",
-    "mocatotsmb7c",
 ]
 
 full_features = demographics + raw_scores + z_scores
+reduced_with_demo = demographics + reduced_core
+reduced_without_demo = reduced_core.copy()
 
-# ---------------------------------------------------------------------------
-# Reduced combinations: model key = "reduced_<sorted_groups_joined_by_underscore>"
-# Groups: "demo", "raw", "z"  (canonical alphabetical order)
-# At least one of raw/z must be present for the model to be clinically useful.
-# ---------------------------------------------------------------------------
 
-# All 6 non-trivial combinations of {demo, raw, z} that include ≥1 cog group
-reduced_combos = {
-    # cognitive-only
-    "reduced_z":         reduced_z,
-    "reduced_raw":       reduced_raw,
-    "reduced_raw_z":     reduced_raw + reduced_z,
-    # with demographics
-    "reduced_demo_z":    demographics + reduced_z,
-    "reduced_demo_raw":  demographics + reduced_raw,
-    "reduced_demo_raw_z": demographics + reduced_raw + reduced_z,
-}
-
-all_needed = set(full_features)
-for feats in reduced_combos.values():
-    all_needed.update(feats)
-
+all_needed = set(full_features + reduced_with_demo + reduced_without_demo)
 missing = [c for c in all_needed if c not in train.columns]
 if missing:
     raise ValueError(f"These required columns are missing from the data: {missing}")
+
 
 
 def find_threshold(y_true, y_probs, target=0.9):
@@ -145,23 +128,24 @@ def train_and_save(feature_list, suffix):
     test_probs = rf.predict_proba(X_test)[:, 1]
 
     thresh, sens, spec = find_threshold(y_train, train_probs, target=0.9)
+    test_auc = roc_auc_score(y_test, test_probs)
 
     print(f"{suffix}:")
     print(f"  n_features = {len(feature_list)}")
     print(f"  threshold  = {thresh:.4f}")
     print(f"  train sens = {sens:.4f}")
     print(f"  train spec = {spec:.4f}")
+    print(f"  test AUC   = {test_auc:.4f}")
     print(f"  test mean risk = {test_probs.mean():.4f}")
 
     joblib.dump(rf, f"model_{suffix}.pkl")
     joblib.dump(thresh, f"threshold_{suffix}.pkl")
     joblib.dump(feature_list, f"features_{suffix}.pkl")
     joblib.dump(X_train.mean(), f"feature_means_{suffix}.pkl")
-
+    joblib.dump(test_auc, f"auc_{suffix}.pkl")
 
 train_and_save(full_features, "full")
-
-for suffix, feats in reduced_combos.items():
-    train_and_save(feats, suffix)
+train_and_save(reduced_with_demo, "reduced_demo")
+train_and_save(reduced_without_demo, "reduced_nodemo")
 
 print("All models saved.")

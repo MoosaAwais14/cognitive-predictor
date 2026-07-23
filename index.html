@@ -32,57 +32,97 @@
       letter-spacing: 0.08em;
       margin-bottom: 1.25rem;
     }
-    .sidebar .radio-group { margin-bottom: 1.25rem; }
-    .sidebar .radio-group label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-      color: #cbd5e1;
-      padding: 0.25rem 0;
-      cursor: pointer;
-    }
-    .sidebar .radio-group label:first-child {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #94a3b8;
+    .sidebar-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #7c8aa5;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
-      cursor: default;
-      padding-bottom: 0.4rem;
+      letter-spacing: 0.08em;
+      margin: 1.1rem 0 0.5rem 0;
     }
-    .sidebar input[type="radio"]    { accent-color: #3b82f6; }
-    .sidebar input[type="checkbox"] { accent-color: #3b82f6; }
+    .sidebar-eyebrow:first-of-type { margin-top: 0; }
 
-    /* Reduced group toggles */
-    #group-toggles {
-      display: none;
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid #334155;
+    /* Feature-set dropdown */
+    .select-wrap { position: relative; margin-bottom: 0.25rem; }
+    .select-wrap::after {
+      content: "▾";
+      position: absolute;
+      right: 0.9rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7c8aa5;
+      pointer-events: none;
+      font-size: 0.8rem;
     }
-    #group-toggles .toggle-heading {
-      font-size: 0.75rem;
+    #feature-mode-select {
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: #1c2537;
+      color: #e2e8f0;
+      border: 1px solid #324364;
+      border-radius: 0.65rem;
+      padding: 0.55rem 2rem 0.55rem 0.8rem;
+      font-size: 0.9rem;
       font-weight: 600;
-      color: #94a3b8;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.15s ease;
     }
-    #group-toggles label {
+    #feature-mode-select:hover,
+    #feature-mode-select:focus {
+      border-color: #3b82f6;
+      outline: none;
+    }
+    #feature-mode-select option {
+      background-color: #1c2537;
+      color: #e2e8f0;
+    }
+
+    /* Toggle switches for feature-group inclusion */
+    .toggle-row {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.4rem 0;
       font-size: 0.875rem;
       color: #cbd5e1;
-      padding: 0.2rem 0;
-      cursor: pointer;
     }
-    #group-error {
-      margin-top: 0.5rem;
-      font-size: 0.78rem;
-      color: #f87171;
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #334155;
+      border-radius: 999px;
+      transition: 0.15s ease;
+    }
+    .switch .slider::before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background-color: #e2e8f0;
+      border-radius: 50%;
+      transition: 0.15s ease;
+    }
+    .switch input:checked + .slider { background-color: #3b82f6; }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
+
+    #demo-toggle {
       display: none;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid #334155;
     }
 
     .model-info {
@@ -144,15 +184,21 @@
     .label-demo { background-color: #76aade; }
     .label-raw  { background-color: #e8e848; }
     .label-z    { background-color: #61d461; }
-    .feature-cell input[type="number"] {
+    .feature-cell input[type="number"],
+    .feature-cell select {
       width: 100%;
       padding: 0.4rem 0.6rem;
       border: 1px solid #d1d5db;
       border-radius: 0.375rem;
       font-size: 0.875rem;
       background: #fff;
+      color: #111827;
     }
-    .feature-cell input[type="number"]:focus {
+    .feature-cell select {
+      cursor: pointer;
+    }
+    .feature-cell input[type="number"]:focus,
+    .feature-cell select:focus {
       outline: 2px solid #3b82f6;
       border-color: transparent;
     }
@@ -184,7 +230,7 @@
       border: 1px solid #e5e7eb;
       border-radius: 0.75rem;
       padding: 1.25rem;
-      max-width: 520px;
+      max-width: 640px;
     }
     .results-title {
       font-size: 1.1rem;
@@ -193,7 +239,7 @@
     }
     .metrics {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
       margin-bottom: 1rem;
     }
@@ -233,34 +279,29 @@
   <aside class="sidebar">
     <h2>Model Settings</h2>
 
-    <div class="radio-group">
-      <label>Feature set</label>
-      <label><input type="radio" name="feature-mode" value="full" checked> Full</label>
-      <label><input type="radio" name="feature-mode" value="reduced"> Reduced</label>
+    <div class="sidebar-eyebrow">Feature set</div>
+    <div class="select-wrap">
+      <select id="feature-mode-select">
+        <option value="full" selected>Full</option>
+        <option value="reduced">Reduced</option>
+      </select>
     </div>
 
-    <!-- Shown only in Reduced mode -->
-    <div id="group-toggles">
-      <div class="toggle-heading">Feature groups</div>
-      <label>
-        <input type="checkbox" id="include-z" checked>
-        Z-scores (reduced)
-      </label>
-      <label>
-        <input type="checkbox" id="include-raw">
-        Raw scores (reduced)
-      </label>
-      <label>
-        <input type="checkbox" id="include-demo">
-        Demographics
-      </label>
-      <div id="group-error">Select at least one cognitive group (Z-scores or Raw scores).</div>
+    <div id="demo-toggle">
+      <div class="toggle-row">
+        <span>Include demographics</span>
+        <label class="switch">
+          <input type="checkbox" id="include-demo" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
 
     <div class="model-info">
       <div>Loaded model: <strong id="info-key">—</strong></div>
       <div>Features: <strong id="info-nfeatures">—</strong></div>
       <div>Threshold: <strong id="info-threshold">—</strong></div>
+      <div>Model AUC (test): <strong id="info-auc">—</strong></div>
     </div>
   </aside>
 
@@ -301,6 +342,10 @@
           <div class="metric-label">Decision</div>
           <div class="metric-value" id="res-decision">—</div>
         </div>
+        <div class="metric">
+          <div class="metric-label">Model AUC (test)</div>
+          <div class="metric-value" id="res-auc">—</div>
+        </div>
       </div>
       <div class="result-banner" id="res-banner"></div>
     </div>
@@ -308,27 +353,23 @@
 
 </div>
 <script>
-// ── Feature metadata ──────────────────────────────────────────────────────────
+// ── Feature metadata — mirrors app.py exactly ────────────────────────────────
 
 const DEMOGRAPHICS = [
   "age7c", "gender1", "race1c", "educ1", "phx_income7", "curjob7"
 ];
 
-// Reduced subsets (mirrors model.py)
-const REDUCED_Z = [
-  "executive_domainmb7c",
-  "memory_delay_domainmb7c",
+const RAW_SCORES = [
+  "craftursmb7c", "craftdremb7c", "dgtformb7c", "dgtbckmb7c",
+  "dsymscrmb7c", "trailamb7c", "trailbmb7c_adjusted", "udsverfcmb7c",
+  "vegmb7c", "animalsmb7c", "avlt_delayed_totalmb7c",
+  "avlt_t1_totalmb7c", "avlt_t6_totalmb7c", "avlt_total_correctmb7c",
+  "wrat5mb7c", "mocatotsmb7c", "craftdvrmb7c", "craftvrsmb7c",
+  "udsbentcmb7c", "udsbentdmb7c", "avlt_lotmb7c", "avlt_listb_totalmb7c",
+  "trailb_ceiling", "casisummb7c"
 ];
 
-const REDUCED_RAW = [
-  "trailbmb7c_adjusted",
-  "casisummb7c",
-  "dsymscrmb7c",
-  "mocatotsmb7c",
-];
-
-// Full z-score list — used only for group classification
-const ALL_Z_SCORES = [
+const Z_SCORES = [
   "memory_immed_domainmb7c", "memory_delay_domainmb7c",
   "lang_semantic_domainmb7c", "phonemic_domainmb7c",
   "attn_process_domainmb7c", "executive_domainmb7c",
@@ -350,9 +391,32 @@ const PRETTY_NAMES = {
   "dsymscrmb7c":               "Digit Symbol Score",
 };
 
+// Numeric-code -> human-readable label for the categorical demographic
+// fields. Age is left as a plain numeric input since it isn't categorical.
+const CATEGORY_MAPS = {
+  gender1: { 0: "Female", 1: "Male" },
+  race1c: { 1: "White", 2: "Chinese", 3: "Black", 4: "Hispanic" },
+  educ1: {
+    0: "No schooling", 1: "Grades 1–8", 2: "Grades 9–11", 3: "High school/GED",
+    4: "Some college", 5: "Tech school", 6: "Associate degree", 7: "Bachelor’s",
+    8: "Graduate/Professional",
+  },
+  phx_income7: {
+    1: "<$5k", 2: "$5k–7.9k", 3: "$8k–11.9k", 4: "$12k–15.9k", 5: "$16k–19.9k",
+    6: "$20k–24.9k", 7: "$25k–29.9k", 8: "$30k–34.9k", 9: "$35k–39.9k",
+    10: "$40k–49.9k", 11: "$50k–74.9k", 12: "$75k–99.9k", 13: "$100k–124.9k",
+    14: "$125k–149.9k", 15: "≥$150k",
+  },
+  curjob7: {
+    1: "Homemaker", 2: "Employed FT", 3: "Employed PT", 4: "On leave",
+    5: "Temp away", 6: "Unemployed <6mo", 7: "Unemployed >6mo",
+    8: "Retired - Not Working", 9: "Retired - Working", 10: "Volunteering",
+  },
+};
+
 function getGroup(feature) {
   if (DEMOGRAPHICS.includes(feature)) return "demo";
-  if (ALL_Z_SCORES.includes(feature)) return "z";
+  if (Z_SCORES.includes(feature))     return "z";
   return "raw";
 }
 
@@ -365,41 +429,20 @@ function getLabelClass(feature) {
   return g === "demo" ? "label-demo" : g === "z" ? "label-z" : "label-raw";
 }
 
-// ── Key builder — must match model.py make_reduced_key exactly ───────────────
-// Parts always in canonical order: demo < raw < z
-
-function makeReducedKey(includeDemo, includeZ, includeRaw) {
-  const cogSelected = includeZ || includeRaw;
-  if (!cogSelected) return null;  // invalid
-
-  const parts = [];
-  if (includeDemo) parts.push("demo");
-  if (includeRaw)  parts.push("raw");
-  if (includeZ)    parts.push("z");
-
-  return "reduced_" + parts.join("_");
-}
-
 // ── App state ─────────────────────────────────────────────────────────────────
 
-let metadata        = null;
+let metadata       = null;   // loaded from models/metadata.json
 let currentModelKey = null;
-const sessionCache  = {};
+const sessionCache  = {};    // modelKey -> ort.InferenceSession
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getSelections() {
-  const mode     = document.querySelector('input[name="feature-mode"]:checked').value;
-  const includeZ    = document.getElementById("include-z").checked;
-  const includeRaw  = document.getElementById("include-raw").checked;
-  const includeDemo = document.getElementById("include-demo").checked;
-  return { mode, includeZ, includeRaw, includeDemo };
-}
-
 function getModelKey() {
-  const { mode, includeZ, includeRaw, includeDemo } = getSelections();
+  const mode = document.getElementById("feature-mode-select").value;
   if (mode === "full") return "full";
-  return makeReducedKey(includeDemo, includeZ, includeRaw);
+  return document.getElementById("include-demo").checked
+    ? "reduced_demo"
+    : "reduced_nodemo";
 }
 
 function setStatus(msg, isError = false) {
@@ -442,9 +485,13 @@ function renderForm(modelKey) {
   const grid = document.getElementById("feature-grid");
   grid.innerHTML = "";
 
-  // ncols: full=4, reduced with lots of features=3, small=2
-  const n = meta.features.length;
-  const ncols = modelKey === "full" ? 4 : n > 4 ? 3 : 2;
+  // Column counts match the Streamlit app's layout per feature set.
+  const NCOLS_BY_KEY = {
+    full: 4,
+    reduced_demo: 3,
+    reduced_nodemo: 2,
+  };
+  const ncols = NCOLS_BY_KEY[modelKey] || 3;
   grid.style.gridTemplateColumns = `repeat(${ncols}, minmax(0, 1fr))`;
 
   for (const feature of meta.features) {
@@ -456,31 +503,56 @@ function renderForm(modelKey) {
     const lbl = document.createElement("div");
     lbl.className   = `feature-label ${getLabelClass(feature)}`;
     lbl.textContent = getLabel(feature);
-
-    const inp = document.createElement("input");
-    inp.type  = "number";
-    inp.step  = "any";
-    inp.id    = `feat-${feature}`;
-    inp.value = (mean !== undefined) ? mean.toFixed(4) : "0";
-
     cell.appendChild(lbl);
-    cell.appendChild(inp);
+
+    if (CATEGORY_MAPS[feature]) {
+      const valueMap = CATEGORY_MAPS[feature];
+      const codes = Object.keys(valueMap).map(Number).sort((a, b) => a - b);
+
+      // Default to whichever category is closest to the training-set mean.
+      let defaultCode = codes[0];
+      let bestDist = Infinity;
+      for (const code of codes) {
+        const dist = Math.abs(code - (mean !== undefined ? mean : code));
+        if (dist < bestDist) { bestDist = dist; defaultCode = code; }
+      }
+
+      const sel = document.createElement("select");
+      sel.id = `feat-${feature}`;
+      for (const code of codes) {
+        const opt = document.createElement("option");
+        opt.value = code;
+        opt.textContent = valueMap[code];
+        if (code === defaultCode) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      cell.appendChild(sel);
+    } else {
+      const inp = document.createElement("input");
+      inp.type  = "number";
+      inp.step  = "any";
+      inp.id    = `feat-${feature}`;
+      inp.value = (mean !== undefined) ? mean.toFixed(4) : "0";
+      cell.appendChild(inp);
+    }
+
     grid.appendChild(cell);
   }
 
+  // Update sidebar info panel
   document.getElementById("info-key").textContent       = modelKey;
   document.getElementById("info-nfeatures").textContent = meta.features.length;
   document.getElementById("info-threshold").textContent = meta.threshold.toFixed(3);
+  document.getElementById("info-auc").textContent =
+    (meta.auc !== null && meta.auc !== undefined) ? meta.auc.toFixed(3) : "N/A";
 }
 
 // ── Run prediction ────────────────────────────────────────────────────────────
 
 async function runPredict() {
   const modelKey = getModelKey();
-  if (!modelKey) return;  // button should already be disabled
-
-  const meta = metadata[modelKey];
-  const btn  = document.getElementById("predict-btn");
+  const meta     = metadata[modelKey];
+  const btn      = document.getElementById("predict-btn");
 
   btn.disabled    = true;
   btn.textContent = "Running…";
@@ -488,6 +560,7 @@ async function runPredict() {
   try {
     const session = await getSession(modelKey);
 
+    // Build Float32Array input in feature order; fall back to mean if blank / NaN
     const inputData = new Float32Array(
       meta.features.map(f => {
         const val = parseFloat(document.getElementById(`feat-${f}`).value);
@@ -499,11 +572,12 @@ async function runPredict() {
     const tensor    = new ort.Tensor("float32", inputData, [1, inputData.length]);
     const outputs   = await session.run({ [inputName]: tensor });
 
-    const probName     = session.outputNames.find(n => n.toLowerCase().includes("prob"))
-                         || session.outputNames[1];
-    const probImpaired = outputs[probName].data[1];
+    // Probabilities output: shape [1, 2] (class-0 prob, class-1 prob)
+    const probName   = session.outputNames.find(n => n.toLowerCase().includes("prob"))
+                       || session.outputNames[1];
+    const probImpaired = outputs[probName].data[1];  // index 1 = impaired class
 
-    showResults(probImpaired, meta.threshold);
+    showResults(probImpaired, meta.threshold, meta.auc);
   } catch (err) {
     setStatus(`Error: ${err && (err.message || err.toString()) || "unknown error"}`, true);
     console.error(err);
@@ -515,12 +589,14 @@ async function runPredict() {
 
 // ── Display results ───────────────────────────────────────────────────────────
 
-function showResults(prob, threshold) {
+function showResults(prob, threshold, auc) {
   const highRisk = prob >= threshold;
 
   document.getElementById("res-prob").textContent      = prob.toFixed(3);
   document.getElementById("res-threshold").textContent = threshold.toFixed(3);
   document.getElementById("res-decision").textContent  = highRisk ? "High Risk" : "Low Risk";
+  document.getElementById("res-auc").textContent       =
+    (auc !== null && auc !== undefined) ? auc.toFixed(3) : "N/A";
 
   const banner = document.getElementById("res-banner");
   if (highRisk) {
@@ -537,37 +613,17 @@ function showResults(prob, threshold) {
 // ── Handle settings changes ───────────────────────────────────────────────────
 
 async function onSettingsChange() {
-  const mode = document.querySelector('input[name="feature-mode"]:checked').value;
-  const groupToggles = document.getElementById("group-toggles");
-  const groupError   = document.getElementById("group-error");
-  const btn          = document.getElementById("predict-btn");
-
-  // Show/hide the group-toggle panel
-  groupToggles.style.display = (mode === "reduced") ? "block" : "none";
+  const mode = document.getElementById("feature-mode-select").value;
+  document.getElementById("demo-toggle").style.display = (mode === "reduced") ? "block" : "none";
 
   const modelKey = getModelKey();
-
-  // Validate: at least one cognitive group must be selected in reduced mode
-  if (modelKey === null) {
-    groupError.style.display = "block";
-    btn.disabled    = true;
-    btn.textContent = "Select a feature group";
-    document.getElementById("feature-grid").innerHTML = "";
-    document.getElementById("results").style.display  = "none";
-    document.getElementById("info-key").textContent   = "—";
-    document.getElementById("info-nfeatures").textContent = "—";
-    document.getElementById("info-threshold").textContent = "—";
-    return;
-  }
-
-  groupError.style.display = "none";
-
   if (modelKey === currentModelKey) return;
   currentModelKey = modelKey;
 
   document.getElementById("results").style.display = "none";
   renderForm(modelKey);
 
+  const btn = document.getElementById("predict-btn");
   btn.disabled    = true;
   btn.textContent = "Loading model…";
 
@@ -588,18 +644,14 @@ async function onSettingsChange() {
     await loadMetadata();
     setStatus("");
 
-    document.querySelectorAll('input[name="feature-mode"]')
-      .forEach(r => r.addEventListener("change", onSettingsChange));
-    document.getElementById("include-z")
-      .addEventListener("change", onSettingsChange);
-    document.getElementById("include-raw")
+    document.getElementById("feature-mode-select")
       .addEventListener("change", onSettingsChange);
     document.getElementById("include-demo")
       .addEventListener("change", onSettingsChange);
     document.getElementById("predict-btn")
       .addEventListener("click", runPredict);
 
-    await onSettingsChange();
+    await onSettingsChange();   // initial render + model pre-load
   } catch (err) {
     setStatus(`Initialisation error: ${err.message}`, true);
     console.error(err);

@@ -7,13 +7,9 @@ metadata JSON consumed by the web app.
 
 Outputs are written to js-app/models/:
     full.onnx
-    reduced_z.onnx
-    reduced_raw.onnx
-    reduced_raw_z.onnx
-    reduced_demo_z.onnx
-    reduced_demo_raw.onnx
-    reduced_demo_raw_z.onnx
-    metadata.json          (thresholds, feature lists, training-set means)
+    reduced_demo.onnx
+    reduced_nodemo.onnx
+    metadata.json          (thresholds, feature lists, training-set means, AUC)
 
 The original .pkl files in the repo root are never modified.
 """
@@ -25,7 +21,7 @@ import sys
 import joblib
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-REPO_DIR = SCRIPT_DIR
+REPO_DIR   = SCRIPT_DIR
 MODELS_DIR = os.path.join(SCRIPT_DIR, "models")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
@@ -35,24 +31,16 @@ try:
 except ImportError:
     sys.exit("Install skl2onnx first:  pip install skl2onnx onnx")
 
-# All model suffixes: 1 full + 6 reduced combinations
-SUFFIXES = [
-    "full",
-    "reduced_z",
-    "reduced_raw",
-    "reduced_raw_z",
-    "reduced_demo_z",
-    "reduced_demo_raw",
-    "reduced_demo_raw_z",
-]
-
 metadata = {}
 
-for suffix in SUFFIXES:
+for suffix in ["full", "reduced_demo", "reduced_nodemo"]:
     model     = joblib.load(os.path.join(REPO_DIR, f"model_{suffix}.pkl"))
     threshold = joblib.load(os.path.join(REPO_DIR, f"threshold_{suffix}.pkl"))
     features  = joblib.load(os.path.join(REPO_DIR, f"features_{suffix}.pkl"))
     means     = joblib.load(os.path.join(REPO_DIR, f"feature_means_{suffix}.pkl"))
+
+    auc_path = os.path.join(REPO_DIR, f"auc_{suffix}.pkl")
+    auc = joblib.load(auc_path) if os.path.exists(auc_path) else None
 
     n = len(features)
     initial_type = [("float_input", FloatTensorType([None, n]))]
@@ -71,8 +59,10 @@ for suffix in SUFFIXES:
         "threshold": float(threshold),
         "features":  list(features),
         "means":     {k: float(v) for k, v in means.items()},
+        "auc":       float(auc) if auc is not None else None,
     }
-    print(f"{suffix:25s}  features={n}  threshold={float(threshold):.4f}  -> {onnx_path}")
+    auc_str = f"{float(auc):.4f}" if auc is not None else "N/A"
+    print(f"{suffix:20s}  features={n}  threshold={float(threshold):.4f}  auc={auc_str}  -> {onnx_path}")
 
 with open(os.path.join(MODELS_DIR, "metadata.json"), "w") as fh:
     json.dump(metadata, fh, indent=2)
