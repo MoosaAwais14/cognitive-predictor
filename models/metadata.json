@@ -1,6 +1,6 @@
 {
   "full": {
-    "threshold": 0.6841632653061224,
+    "threshold": 0.40173196599650757,
     "features": [
       "age7c",
       "gender1",
@@ -81,10 +81,10 @@
       "visuo_domainmb7c": -0.29324001299444963,
       "lang_phonemic_domainmb7c": -0.10817882345883441
     },
-    "auc": 0.9515697660410091
+    "auc": 0.9522685107100691
   },
   "reduced_demo": {
-    "threshold": 0.6660816326530612,
+    "threshold": 0.45356889258188576,
     "features": [
       "age7c",
       "gender1",
@@ -111,10 +111,10 @@
       "casisummb7c": 88.96273291356879,
       "dsymscrmb7c": 49.700838769804285
     },
-    "auc": 0.9402091415078428
+    "auc": 0.9422692335493821
   },
   "reduced_nodemo": {
-    "threshold": 0.654061224489796,
+    "threshold": 0.4072784558211992,
     "features": [
       "executive_domainmb7c",
       "memory_delay_domainmb7c",
@@ -129,6 +129,6 @@
       "casisummb7c": 88.96273291356879,
       "dsymscrmb7c": 49.700838769804285
     },
-    "auc": 0.9252343204105727
+    "auc": 0.9361250993904056
   }
 }

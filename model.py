@@ -120,21 +120,38 @@ def train_and_save(feature_list, suffix):
     rf = RandomForestClassifier(
         n_estimators=1000,
         class_weight="balanced",
-        random_state=42
+        random_state=42,
+        max_depth=8,
+        min_samples_leaf=5,
+        max_features="sqrt",
+        bootstrap=True,
+        oob_score=True,
     )
     rf.fit(X_train, y_train)
 
-    train_probs = rf.predict_proba(X_train)[:, 1]
+    # Use out-of-bag predictions (each sample scored only by trees that
+    # didn't see it) instead of in-sample predictions, so the threshold
+    # isn't chosen using memorized training data.
+    oob_probs = rf.oob_decision_function_[:, 1]
     test_probs = rf.predict_proba(X_test)[:, 1]
 
-    thresh, sens, spec = find_threshold(y_train, train_probs, target=0.9)
+    thresh, oob_sens, oob_spec = find_threshold(y_train, oob_probs, target=0.9)
     test_auc = roc_auc_score(y_test, test_probs)
+
+    # Apply that threshold to the held-out test set to get an honest
+    # sensitivity/specificity estimate.
+    test_preds = (test_probs >= thresh).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_test, test_preds).ravel()
+    test_sens = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    test_spec = tn / (tn + fp) if (tn + fp) > 0 else 0.0
 
     print(f"{suffix}:")
     print(f"  n_features = {len(feature_list)}")
     print(f"  threshold  = {thresh:.4f}")
-    print(f"  train sens = {sens:.4f}")
-    print(f"  train spec = {spec:.4f}")
+    print(f"  oob sens   = {oob_sens:.4f}")
+    print(f"  oob spec   = {oob_spec:.4f}")
+    print(f"  test sens  = {test_sens:.4f}")
+    print(f"  test spec  = {test_spec:.4f}")
     print(f"  test AUC   = {test_auc:.4f}")
     print(f"  test mean risk = {test_probs.mean():.4f}")
 
@@ -143,7 +160,7 @@ def train_and_save(feature_list, suffix):
     joblib.dump(feature_list, f"features_{suffix}.pkl")
     joblib.dump(X_train.mean(), f"feature_means_{suffix}.pkl")
     joblib.dump(test_auc, f"auc_{suffix}.pkl")
-
+    
 train_and_save(full_features, "full")
 train_and_save(reduced_with_demo, "reduced_demo")
 train_and_save(reduced_without_demo, "reduced_nodemo")
